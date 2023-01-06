@@ -10,8 +10,10 @@ import SceneKit
 import ARKit
 
 class ViewController: UIViewController, ARSCNViewDelegate {
-
+    
     @IBOutlet var sceneView: ARSCNView!
+    
+    var dotNodes: [SCNNode] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -19,14 +21,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         // Set the view's delegate
         sceneView.delegate = self
         
-        // Show statistics such as fps and timing information
-        sceneView.showsStatistics = true
-        
-        // Create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
-        
-        // Set the scene to the view
-        sceneView.scene = scene
+        sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -34,7 +29,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         // Create a session configuration
         let configuration = ARWorldTrackingConfiguration()
-
+        
         // Run the view's session
         sceneView.session.run(configuration)
     }
@@ -45,30 +40,60 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         // Pause the view's session
         sceneView.session.pause()
     }
-
-    // MARK: - ARSCNViewDelegate
     
-/*
-    // Override to create and configure nodes for anchors added to the view's session.
-    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
-        let node = SCNNode()
-     
-        return node
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // タッチされた位置を取得する
+        if let touchLocation = touches.first?.location(in: sceneView) {
+            // タッチされた位置を、SceneKit view上の3D空間の位置を取得
+            let results = sceneView.hitTest(touchLocation, options: nil)
+            guard let result = results.first else { return }
+            addDot(at: result)
+        }
     }
-*/
     
-    func session(_ session: ARSession, didFailWithError error: Error) {
-        // Present an error message to the user
+    func addDot(at hitTestResult: SCNHitTestResult) {
+        let dotGeometory = SCNSphere(radius: 0.005)
         
+        let material = SCNMaterial()
+        material.diffuse.contents = UIColor.red
+        dotGeometory.materials = [material]
+        
+        let dotNode = SCNNode(geometry: dotGeometory)
+        dotNode.position = hitTestResult.worldCoordinates
+        sceneView.scene.rootNode.addChildNode(dotNode)
+        
+        dotNodes.append(dotNode)
+        
+        if dotNodes.count >= 2 {
+            calculate()
+        }
     }
     
-    func sessionWasInterrupted(_ session: ARSession) {
-        // Inform the user that the session has been interrupted, for example, by presenting an overlay
+    func calculate() {
+        let start = dotNodes[0]
+        let end = dotNodes[1]
         
+        let distance = sqrt(pow(end.position.x - start.position.x, 2) +
+                            pow(end.position.y - start.position.y, 2) +
+                            pow(end.position.z - start.position.z, 2)
+        )
+        print(abs(distance))
     }
     
-    func sessionInterruptionEnded(_ session: ARSession) {
-        // Reset tracking and/or remove existing anchors if consistent tracking is required
-        
-    }
 }
+
+
+
+//
+//    guard let query = sceneView.raycastQuery(
+//        from: touchLocation,
+//        allowing: .existingPlaneInfinite,
+//        alignment: .any
+//    ) else { return }
+//    let results = sceneView.session.raycast(query)
+//    guard let hitTestResult = results.first else {
+//        print("No surface found")
+//        return
+//    }
+//    let anchor = ARAnchor(transform: hitTestResult.worldTransform)
+//    sceneView.session.add(anchor: anchor)
