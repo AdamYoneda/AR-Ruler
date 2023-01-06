@@ -14,6 +14,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     @IBOutlet var sceneView: ARSCNView!
     
     var dotNodes: [SCNNode] = []
+    var textNode = SCNNode()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -42,6 +43,13 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // 配列dotNodes内に2つ以上dotNodeがある場合、全て削除する
+        if dotNodes.count >= 2 {
+            for dot in dotNodes {
+                dot.removeFromParentNode()  // scneViewから3D nodeを取り除く
+            }
+            dotNodes = []   // dotNodesを空にする
+        }
         // タッチされた位置を取得する
         if let touchLocation = touches.first?.location(in: sceneView) {
             // タッチされた位置を、SceneKit view上の3D空間の位置を取得
@@ -81,9 +89,10 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }
     
     func updateText(text: String, atPosition position: SCNVector3) {
+        textNode.removeFromParentNode() // textNodeをsceneから削除
         let textGeometory = SCNText(string: text, extrusionDepth: 1.0)
         textGeometory.firstMaterial?.diffuse.contents = UIColor.red
-        let textNode = SCNNode(geometry: textGeometory)
+        textNode = SCNNode(geometry: textGeometory)
         textNode.position = SCNVector3(position.x, position.y + 0.01, position.z)
         textNode.scale = SCNVector3(0.01, 0.01, 0.01)
         
@@ -91,19 +100,3 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }
     
 }
-
-
-
-//
-//    guard let query = sceneView.raycastQuery(
-//        from: touchLocation,
-//        allowing: .existingPlaneInfinite,
-//        alignment: .any
-//    ) else { return }
-//    let results = sceneView.session.raycast(query)
-//    guard let hitTestResult = results.first else {
-//        print("No surface found")
-//        return
-//    }
-//    let anchor = ARAnchor(transform: hitTestResult.worldTransform)
-//    sceneView.session.add(anchor: anchor)
